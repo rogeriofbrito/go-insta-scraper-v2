@@ -26,7 +26,7 @@ type TemplateMatcher struct {
 
 // GetMatches finds all regions in the image at imagePath that match the template at templatePath.
 // Returns a slice of rectangles representing the matched regions.
-func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]*image.Rectangle, error) {
+func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]image.Rectangle, error) {
 	// Read the main image from disk
 	imageMat := gocv.IMRead(imagePath, tm.flags)
 	if imageMat.Empty() {
@@ -51,7 +51,7 @@ func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]*image.
 		return nil, stacktrace.Propagate(err, "failed to match template")
 	}
 
-	matches := []*image.Rectangle{}
+	matches := []image.Rectangle{}
 	for {
 		// Find the location and value of the best match in the result matrix
 		_, maxVal, _, maxLoc := gocv.MinMaxLoc(result)
@@ -72,7 +72,7 @@ func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]*image.
 		}
 
 		// Add the matched rectangle to the results
-		matches = append(matches, &match)
+		matches = append(matches, match)
 	}
 
 	return matches, nil
