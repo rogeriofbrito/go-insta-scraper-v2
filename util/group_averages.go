@@ -1,7 +1,9 @@
 package util
 
-// GroupAverages takes a sorted list of integers and a threshold value.
-// It groups consecutive numbers where the difference between neighbors
+import "sort"
+
+// GroupAverages takes a list of integers and a threshold value.
+// It sorts the list and groups consecutive numbers where the difference between neighbors
 // is less than or equal to the threshold, and returns a slice containing
 // the average of each group.
 //
@@ -15,6 +17,8 @@ func GroupAverages(nums []int, threshold int) []float64 {
 	if len(nums) == 0 {
 		return nil
 	}
+
+	sort.Ints(nums)
 
 	var result []float64
 	sum := nums[0]

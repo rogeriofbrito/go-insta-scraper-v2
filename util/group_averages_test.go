@@ -23,61 +23,61 @@ func TestGroupAverages_DiverseCases(t *testing.T) {
 		},
 		{
 			name:      "single_element",
-			nums:      []int{5},
+			nums:      []int{5}, // [5]
 			threshold: 10,
 			expected:  []float64{5},
 		},
 		{
 			name:      "all_equal_threshold_zero",
-			nums:      []int{2, 2, 2, 2},
+			nums:      []int{2, 2, 2, 2}, // [2, 2, 2, 2]
 			threshold: 0,
 			expected:  []float64{2},
 		},
 		{
 			name:      "threshold_zero_distinct_elements_each_own_group",
-			nums:      []int{1, 2, 3},
+			nums:      []int{2, 1, 3}, // [1, 2, 3]
 			threshold: 0,
 			expected:  []float64{1, 2, 3},
 		},
 		{
 			name:      "large_threshold_groups_everything",
-			nums:      []int{1, 2, 3, 4, 5},
+			nums:      []int{5, 3, 1, 2, 4}, // [1, 2, 3, 4, 5]
 			threshold: 100,
 			expected:  []float64{3}, // average of 1..5 is 3
 		},
 		{
 			name:      "typical_multiple_groups",
-			nums:      []int{1, 2, 3, 20, 21, 22, 40},
+			nums:      []int{22, 1, 3, 2, 21, 40, 20}, // [1, 2, 3, 20, 21, 22, 40]
 			threshold: 3,
 			expected:  []float64{2, 21, 40},
 		},
 		{
 			name:      "non_integer_averages",
-			nums:      []int{1, 2, 10, 11},
+			nums:      []int{2, 1, 11, 10}, // [1, 2, 10, 11]
 			threshold: 1,
 			expected:  []float64{1.5, 10.5},
 		},
 		{
 			name:      "negative_numbers_grouping",
-			nums:      []int{-5, -4, -3, 0},
+			nums:      []int{0, -3, -5, -4}, // [-5, -4, -3, 0]
 			threshold: 1,
 			expected:  []float64{-4, 0},
 		},
 		{
 			name:      "negative_threshold_prevents_grouping",
-			nums:      []int{1, 2, 3},
+			nums:      []int{2, 1, 3}, // [1, 2, 3]
 			threshold: -1,
 			expected:  []float64{1, 2, 3}, // negative threshold => no adjacent diffs <= threshold
 		},
 		{
 			name:      "groups_with_single_and_multi_element_groups",
-			nums:      []int{1, 10, 11, 12, 100},
+			nums:      []int{12, 1, 10, 100, 11}, // [1, 10, 11, 12, 100]
 			threshold: 1,
 			expected:  []float64{1, 11, 100}, // groups: [1], [10,11,12], [100]
 		},
 		{
 			name:      "large_numbers_no_overflow_like_case",
-			nums:      []int{1 << 30, (1 << 30) + 2},
+			nums:      []int{(1 << 30) + 2, 1 << 30}, // [1 << 30, (1 << 30) + 2]
 			threshold: 2,
 			// average = ((1<<30) + ((1<<30)+2)) / 2 = 1073741825
 			expected: []float64{1073741825.0},
