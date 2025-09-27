@@ -5,48 +5,31 @@ import (
 	"image/color"
 
 	"github.com/palantir/stacktrace"
+	"github.com/rogeriofbrito/go-insta-scraper-v2/config"
 	"gocv.io/x/gocv"
 )
 
-// NewTemplateMatcher creates a new TemplateMatcher with the given threshold, image read flags, and matching method.
-func NewTemplateMatcher(threshold float32, flags gocv.IMReadFlag, method gocv.TemplateMatchMode) *TemplateMatcher {
+// NewTemplateMatcher creates a new TemplateMatcher with the given threshold and matching method.
+func NewTemplateMatcher(config *config.Config) *TemplateMatcher {
 	return &TemplateMatcher{
-		threshold: threshold,
-		flags:     flags,
-		method:    method,
+		config: config,
 	}
 }
 
 // TemplateMatcher encapsulates parameters and logic for template matching in images.
 type TemplateMatcher struct {
-	threshold float32                // Minimum similarity threshold for a match to be considered valid
-	flags     gocv.IMReadFlag        // Flags for reading images (e.g., color, grayscale)
-	method    gocv.TemplateMatchMode // Template matching method (e.g., SQDIFF, CCORR)
+	config *config.Config
 }
 
-// GetMatches finds all regions in the image at imagePath that match the template at templatePath.
+// GetMatches finds all regions in the image Mat that match the template Mat.
 // Returns a slice of rectangles representing the matched regions.
-func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]image.Rectangle, error) {
-	// Read the main image from disk
-	imageMat := gocv.IMRead(imagePath, tm.flags)
-	if imageMat.Empty() {
-		return nil, stacktrace.NewError("failed to read image at %s", imagePath)
-	}
-	defer imageMat.Close()
-
-	// Read the template image from disk
-	templateMat := gocv.IMRead(templatePath, tm.flags)
-	if templateMat.Empty() {
-		return nil, stacktrace.NewError("failed to read image at %s", templatePath)
-	}
-	defer templateMat.Close()
-
+func (tm *TemplateMatcher) GetMatches(imageMat, templateMat gocv.Mat) ([]image.Rectangle, error) {
 	// Prepare a result matrix to store match results
 	result := gocv.NewMat()
 	defer result.Close()
 
 	// Perform template matching
-	err := gocv.MatchTemplate(imageMat, templateMat, &result, tm.method, gocv.NewMat())
+	err := gocv.MatchTemplate(imageMat, templateMat, &result, tm.config.MatchTemplateMethod, gocv.NewMat())
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to match template")
 	}
@@ -57,7 +40,7 @@ func (tm *TemplateMatcher) GetMatches(imagePath, templatePath string) ([]image.R
 		_, maxVal, _, maxLoc := gocv.MinMaxLoc(result)
 
 		// If the best match is below the threshold, stop searching
-		if maxVal < tm.threshold {
+		if maxVal < tm.config.MatchTemplateThreshold {
 			break
 		}
 
