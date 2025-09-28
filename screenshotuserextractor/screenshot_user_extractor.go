@@ -127,7 +127,7 @@ func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, refer
 	var usernameRects []image.Rectangle
 	for _, referencePoint := range referencePoints {
 		topCenterUsernameRect := s.config.BaseTopCenterUsernameRect.Add(referencePoint)
-		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
+		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, s.config.ScreenshotUserExtractorUniformThresold) {
 			usernameRects = append(usernameRects, s.config.BaseCenterUsernameRect.Add(referencePoint))
 		} else {
 			usernameRects = append(usernameRects, s.config.BaseUpUsernameRect.Add(referencePoint))
