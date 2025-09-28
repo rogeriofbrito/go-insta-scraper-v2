@@ -123,26 +123,14 @@ func (s *ScreenshotUserExtractor) getMatches(
 	return matches, nil
 }
 
-func (s *ScreenshotUserExtractor) getCenterUsernameRect(referencePoint image.Point) image.Rectangle {
-	return image.Rect(referencePoint.X-465, referencePoint.Y+15, referencePoint.X-135, referencePoint.Y+56) // TODO: move values to config
-}
-
-func (s *ScreenshotUserExtractor) getTopCenterUsernameRect(referencePoint image.Point) image.Rectangle {
-	return image.Rect(referencePoint.X-465, referencePoint.Y+5, referencePoint.X-135, referencePoint.Y+18) // TODO: move values to config
-}
-
-func (s *ScreenshotUserExtractor) getUpUsernameRect(referencePoint image.Point) image.Rectangle {
-	return image.Rect(referencePoint.X-465, referencePoint.Y-3, referencePoint.X-135, referencePoint.Y+34) // TODO: move values to config
-}
-
 func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, referencePoints []image.Point) []image.Rectangle {
 	var usernameRects []image.Rectangle
 	for _, referencePoint := range referencePoints {
-		topCenterUsernameRect := s.getTopCenterUsernameRect(referencePoint)
+		topCenterUsernameRect := s.config.BaseTopCenterUsernameRect.Add(referencePoint)
 		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
-			usernameRects = append(usernameRects, s.getCenterUsernameRect(referencePoint))
+			usernameRects = append(usernameRects, s.config.BaseCenterUsernameRect.Add(referencePoint))
 		} else {
-			usernameRects = append(usernameRects, s.getUpUsernameRect(referencePoint))
+			usernameRects = append(usernameRects, s.config.BaseUpUsernameRect.Add(referencePoint))
 		}
 	}
 

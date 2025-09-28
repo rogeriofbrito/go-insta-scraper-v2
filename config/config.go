@@ -13,4 +13,7 @@ type Config struct {
 	MatchTemplateThreshold            float32                // Minimum similarity threshold for a match to be considered valid
 	MatchTemplateMethod               gocv.TemplateMatchMode // Template matching method (e.g., SQDIFF, CCORR)
 	ScreenshotUserExtractorImageFlags gocv.IMReadFlag        // Flags used in Screenshot User Extractor to read screenshot and template images
+	BaseCenterUsernameRect            image.Rectangle        // Rectangle that is translated by reference point to generate CenterUsernameRect
+	BaseTopCenterUsernameRect         image.Rectangle        // Rectangle that is translated by reference point to generate TopCenterUsernameRect
+	BaseUpUsernameRect                image.Rectangle        // Rectangle that is translated by reference point to generate UpUsernameRect
 }
