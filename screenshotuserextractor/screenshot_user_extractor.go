@@ -83,7 +83,12 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	referencePoints := util.GetReferencePoints(s.config.ReferencePointsXCoordinate, yCoordinatesGroupInt)
 	usernameRects := s.getUsernameRects(screenshotMat, referencePoints)
 
-	usernames, err := s.readUsernames(screenshotMat, usernameRects)
+	usernameImagePaths, err := s.writeUsernameImages(screenshotMat, usernameRects)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to write username images")
+	}
+
+	usernames, err := s.ocrUsernames(usernameImagePaths)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to read usernames from screenshot")
 	}
@@ -144,32 +149,36 @@ func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, refer
 	return usernameRects
 }
 
-func (s *ScreenshotUserExtractor) readUsernames(screenshotMat gocv.Mat, usernameRects []image.Rectangle) ([]string, error) {
-	// TODO: move username image conversion to another method
-
-	var usernames []string
+func (s *ScreenshotUserExtractor) writeUsernameImages(screenshotMat gocv.Mat, usernameRects []image.Rectangle) ([]string, error) {
+	var usernameImagePaths []string
 	for i, usernameRect := range usernameRects {
 		usernameMat := screenshotMat.Region(usernameRect)
-
 		usernameImagePath := fmt.Sprintf("%s/username_%d.jpg", s.config.WorkingDirPath, i)
-		usernameOcrResultPath := fmt.Sprintf("%s/username_%d", s.config.WorkingDirPath, i)
 
 		writeSuccess := gocv.IMWrite(usernameImagePath, usernameMat)
 		if !writeSuccess {
 			return nil, stacktrace.NewError("failed to write mat at path %s", usernameImagePath)
 		}
 
-		err := s.tocr.OCR(usernameImagePath, usernameOcrResultPath)
+		usernameImagePaths = append(usernameImagePaths, usernameImagePath)
+	}
+
+	return usernameImagePaths, nil
+}
+
+func (s *ScreenshotUserExtractor) ocrUsernames(usernameImagePaths []string) ([]string, error) {
+	var usernames []string
+	for _, usernameImagePath := range usernameImagePaths {
+		err := s.tocr.OCR(usernameImagePath, usernameImagePath)
 		if err != nil {
 			return nil, stacktrace.Propagate(err,
 				"failed to execute tesseract ocr over %s with result at %s",
-				usernameImagePath, usernameOcrResultPath)
+				usernameImagePath, usernameImagePath+".txt")
 		}
 
-		usernameOcrPathTxt := usernameOcrResultPath + ".txt"
-		usernameOcrTxtBytes, err := os.ReadFile(usernameOcrPathTxt)
+		usernameOcrTxtBytes, err := os.ReadFile(usernameImagePath + ".txt")
 		if err != nil {
-			return nil, stacktrace.Propagate(err, "failed to read file %s", usernameOcrPathTxt)
+			return nil, stacktrace.Propagate(err, "failed to read file %s", usernameImagePath+".txt")
 		}
 
 		usernameOcrTxt := string(usernameOcrTxtBytes)
