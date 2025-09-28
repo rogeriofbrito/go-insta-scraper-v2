@@ -11,34 +11,59 @@ import (
 )
 
 func NewScreenshotUserExtractor(
-	screenshotMat gocv.Mat,
-	templateFollowMat gocv.Mat,
-	templateFollowingMat gocv.Mat,
-	templateMessageMat gocv.Mat,
+	screenshotPath string,
+	templateFollowPath string,
+	templateFollowingPath string,
+	templateMessagePath string,
 	config *config.Config,
 	tm *templatematcher.TemplateMatcher,
 ) *ScreenshotUserExtractor {
 	return &ScreenshotUserExtractor{
-		screenshotMat:        screenshotMat,
-		templateFollowMat:    templateFollowMat,
-		templateFollowingMat: templateFollowingMat,
-		templateMessageMat:   templateFollowMat,
-		config:               config,
-		tm:                   tm,
+		screenshotPath:        screenshotPath,
+		templateFollowPath:    templateFollowPath,
+		templateFollowingPath: templateFollowingPath,
+		templateMessagePath:   templateMessagePath,
+		config:                config,
+		tm:                    tm,
 	}
 }
 
 type ScreenshotUserExtractor struct {
-	screenshotMat        gocv.Mat
-	templateFollowMat    gocv.Mat
-	templateFollowingMat gocv.Mat
-	templateMessageMat   gocv.Mat
-	config               *config.Config
-	tm                   *templatematcher.TemplateMatcher
+	screenshotPath        string
+	templateFollowPath    string
+	templateFollowingPath string
+	templateMessagePath   string
+	config                *config.Config
+	tm                    *templatematcher.TemplateMatcher
 }
 
 func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
-	matches, err := s.getMatches()
+	screenshotMat, err := s.readImage(s.screenshotPath, s.config.ScreenshotUserExtractorImageFlags)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read screenshot image")
+	}
+
+	templateFollowMat, err := s.readImage(s.templateFollowPath, s.config.ScreenshotUserExtractorImageFlags)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read follow template image")
+	}
+
+	templateFollowingMat, err := s.readImage(s.templateFollowingPath, s.config.ScreenshotUserExtractorImageFlags)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read following template image")
+	}
+
+	templateMessageMat, err := s.readImage(s.templateMessagePath, s.config.ScreenshotUserExtractorImageFlags)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read message template image")
+	}
+
+	defer screenshotMat.Close()
+	defer templateFollowMat.Close()
+	defer templateFollowingMat.Close()
+	defer templateMessageMat.Close()
+
+	matches, err := s.getMatches(screenshotMat, templateFollowMat, templateFollowingMat, templateMessageMat)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get matches")
 	}
@@ -53,7 +78,7 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	var usernameRects []image.Rectangle
 	for _, referencePoint := range referencePoints {
 		topCenterUsernameRect := s.getTopCenterUsernameRect(referencePoint)
-		if util.IsUniformRegion(s.screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
+		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
 			usernameRects = append(usernameRects, s.getCenterUsernameRect(referencePoint))
 		} else {
 			usernameRects = append(usernameRects, s.getUpUsernameRect(referencePoint))
@@ -65,20 +90,34 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	return nil, nil
 }
 
-func (s *ScreenshotUserExtractor) getMatches() ([]image.Rectangle, error) {
+func (s *ScreenshotUserExtractor) readImage(imagePath string, flags gocv.IMReadFlag) (gocv.Mat, error) {
+	imageMat := gocv.IMRead(imagePath, flags)
+	if imageMat.Empty() {
+		return gocv.Mat{}, stacktrace.NewError("failed to read image at %s: image empty", imagePath)
+	}
+
+	return imageMat, nil
+}
+
+func (s *ScreenshotUserExtractor) getMatches(
+	screenshotMat,
+	templateFollowMat,
+	templateFollowingMat,
+	templateMessageMat gocv.Mat,
+) ([]image.Rectangle, error) {
 	var matches []image.Rectangle
 
-	matchesFollow, err := s.tm.GetMatches(s.screenshotMat, s.templateFollowMat)
+	matchesFollow, err := s.tm.GetMatches(screenshotMat, templateFollowMat)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get follow buttom matches")
 	}
 
-	matchesFollowing, err := s.tm.GetMatches(s.screenshotMat, s.templateFollowingMat)
+	matchesFollowing, err := s.tm.GetMatches(screenshotMat, templateFollowingMat)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get following buttom matches")
 	}
 
-	matchesMessage, err := s.tm.GetMatches(s.screenshotMat, s.templateMessageMat)
+	matchesMessage, err := s.tm.GetMatches(screenshotMat, templateMessageMat)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get message buttom matches")
 	}
