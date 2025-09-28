@@ -55,8 +55,75 @@ func TestConvertSliceFloat64ToInt_DiverseCases(t *testing.T) {
 	}
 }
 
+func TestRemoveEmptyString_DiverseCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "empty_input_returns_empty",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "all_empty_strings",
+			input:    []string{"", "", ""},
+			expected: []string{},
+		},
+		{
+			name:     "no_empty_strings",
+			input:    []string{"a", "b", "c"},
+			expected: []string{"a", "b", "c"},
+		},
+		{
+			name:     "mixed_empty_and_nonempty",
+			input:    []string{"", "foo", "", "bar", "", "baz"},
+			expected: []string{"foo", "bar", "baz"},
+		},
+		{
+			name:     "single_nonempty",
+			input:    []string{"hello"},
+			expected: []string{"hello"},
+		},
+		{
+			name:     "single_empty",
+			input:    []string{""},
+			expected: []string{},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := util.RemoveEmptyString(tc.input)
+			if !stringSlicesEqual(got, tc.expected) {
+				t.Fatalf("RemoveEmptyString(%v) = %v; expected %v", tc.input, got, tc.expected)
+			}
+		})
+	}
+}
+
 // helper: compare two int slices (handles nil)
 func intSlicesEqual(a, b []int) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// helper: compare two string slices (handles nil)
+func stringSlicesEqual(a, b []string) bool {
 	if a == nil && b == nil {
 		return true
 	}
