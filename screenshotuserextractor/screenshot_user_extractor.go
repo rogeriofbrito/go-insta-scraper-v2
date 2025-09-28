@@ -182,10 +182,16 @@ func (s *ScreenshotUserExtractor) ocrUsernames(usernameImagePaths []string) ([]s
 		}
 
 		usernameOcrTxt := string(usernameOcrTxtBytes)
-
 		usernameOcrTxtLines := strings.Split(usernameOcrTxt, "\n")
+		usernameOcrTxtLines = util.RemoveEmptyString(usernameOcrTxtLines)
 
-		// TODO: validate number of lines
+		if len(usernameOcrTxtLines) != 1 {
+			return nil, stacktrace.NewError(
+				"failed to execute ocr in image %s: number of lines returned is different than 1 (%d)",
+				usernameImagePath,
+				len(usernameOcrTxtLines),
+			)
+		}
 
 		usernames = append(usernames, usernameOcrTxtLines[0])
 	}
