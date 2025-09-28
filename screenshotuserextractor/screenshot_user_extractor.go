@@ -1,6 +1,7 @@
 package screenshotuserextractor
 
 import (
+	"fmt"
 	"image"
 
 	"github.com/palantir/stacktrace"
@@ -74,16 +75,9 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	yCoordinatesGroup := util.GroupAverages(yCoordinates, s.config.GroupAveragesThreshold)
 	yCoordinatesGroupInt := util.ConvertSliceFloat64ToInt(yCoordinatesGroup)
 	referencePoints := util.GetReferencePoints(s.config.ReferencePointsXCoordinate, yCoordinatesGroupInt)
+	usernameRects := s.getUsernameRects(screenshotMat, referencePoints)
 
-	var usernameRects []image.Rectangle
-	for _, referencePoint := range referencePoints {
-		topCenterUsernameRect := s.getTopCenterUsernameRect(referencePoint)
-		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
-			usernameRects = append(usernameRects, s.getCenterUsernameRect(referencePoint))
-		} else {
-			usernameRects = append(usernameRects, s.getUpUsernameRect(referencePoint))
-		}
-	}
+	fmt.Println(usernameRects)
 
 	// TODO: extract usernames with tesseract
 
@@ -139,4 +133,18 @@ func (s *ScreenshotUserExtractor) getTopCenterUsernameRect(referencePoint image.
 
 func (s *ScreenshotUserExtractor) getUpUsernameRect(referencePoint image.Point) image.Rectangle {
 	return image.Rect(referencePoint.X-465, referencePoint.Y-3, referencePoint.X-135, referencePoint.Y+34) // TODO: move values to config
+}
+
+func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, referencePoints []image.Point) []image.Rectangle {
+	var usernameRects []image.Rectangle
+	for _, referencePoint := range referencePoints {
+		topCenterUsernameRect := s.getTopCenterUsernameRect(referencePoint)
+		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, 5) { //TODO: create config for threshold
+			usernameRects = append(usernameRects, s.getCenterUsernameRect(referencePoint))
+		} else {
+			usernameRects = append(usernameRects, s.getUpUsernameRect(referencePoint))
+		}
+	}
+
+	return usernameRects
 }
