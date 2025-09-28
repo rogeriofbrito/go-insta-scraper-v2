@@ -3,10 +3,13 @@ package screenshotuserextractor
 import (
 	"fmt"
 	"image"
+	"os"
+	"strings"
 
 	"github.com/palantir/stacktrace"
 	"github.com/rogeriofbrito/go-insta-scraper-v2/config"
 	"github.com/rogeriofbrito/go-insta-scraper-v2/templatematcher"
+	"github.com/rogeriofbrito/go-insta-scraper-v2/tesseractocr"
 	"github.com/rogeriofbrito/go-insta-scraper-v2/util"
 	"gocv.io/x/gocv"
 )
@@ -18,6 +21,7 @@ func NewScreenshotUserExtractor(
 	templateMessagePath string,
 	config *config.Config,
 	tm *templatematcher.TemplateMatcher,
+	tocr *tesseractocr.TesseractOcr,
 ) *ScreenshotUserExtractor {
 	return &ScreenshotUserExtractor{
 		screenshotPath:        screenshotPath,
@@ -26,6 +30,7 @@ func NewScreenshotUserExtractor(
 		templateMessagePath:   templateMessagePath,
 		config:                config,
 		tm:                    tm,
+		tocr:                  tocr,
 	}
 }
 
@@ -36,6 +41,7 @@ type ScreenshotUserExtractor struct {
 	templateMessagePath   string
 	config                *config.Config
 	tm                    *templatematcher.TemplateMatcher
+	tocr                  *tesseractocr.TesseractOcr
 }
 
 func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
@@ -77,11 +83,12 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	referencePoints := util.GetReferencePoints(s.config.ReferencePointsXCoordinate, yCoordinatesGroupInt)
 	usernameRects := s.getUsernameRects(screenshotMat, referencePoints)
 
-	fmt.Println(usernameRects)
+	usernames, err := s.readUsernames(screenshotMat, usernameRects)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read usernames from screenshot")
+	}
 
-	// TODO: extract usernames with tesseract
-
-	return nil, nil
+	return usernames, nil
 }
 
 func (s *ScreenshotUserExtractor) readImage(imagePath string, flags gocv.IMReadFlag) (gocv.Mat, error) {
@@ -135,4 +142,44 @@ func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, refer
 	}
 
 	return usernameRects
+}
+
+func (s *ScreenshotUserExtractor) readUsernames(screenshotMat gocv.Mat, usernameRects []image.Rectangle) ([]string, error) {
+	// TODO: move username image conversion to another method
+
+	var usernames []string
+	for i, usernameRect := range usernameRects {
+		usernameMat := screenshotMat.Region(usernameRect)
+
+		usernameImagePath := fmt.Sprintf("%s/username_%d.jpg", s.config.WorkingDirPath, i)
+		usernameOcrResultPath := fmt.Sprintf("%s/username_%d", s.config.WorkingDirPath, i)
+
+		writeSuccess := gocv.IMWrite(usernameImagePath, usernameMat)
+		if !writeSuccess {
+			return nil, stacktrace.NewError("failed to write mat at path %s", usernameImagePath)
+		}
+
+		err := s.tocr.OCR(usernameImagePath, usernameOcrResultPath)
+		if err != nil {
+			return nil, stacktrace.Propagate(err,
+				"failed to execute tesseract ocr over %s with result at %s",
+				usernameImagePath, usernameOcrResultPath)
+		}
+
+		usernameOcrPathTxt := usernameOcrResultPath + ".txt"
+		usernameOcrTxtBytes, err := os.ReadFile(usernameOcrPathTxt)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "failed to read file %s", usernameOcrPathTxt)
+		}
+
+		usernameOcrTxt := string(usernameOcrTxtBytes)
+
+		usernameOcrTxtLines := strings.Split(usernameOcrTxt, "\n")
+
+		// TODO: validate number of lines
+
+		usernames = append(usernames, usernameOcrTxtLines[0])
+	}
+
+	return usernames, nil
 }
