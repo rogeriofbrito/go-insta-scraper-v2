@@ -136,13 +136,17 @@ func (s *ScreenshotUserExtractor) getMatches(
 }
 
 func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, referencePoints []image.Point) []image.Rectangle {
+	baseTopCenterUsernameRect := s.config.SamplePosition.TopCenterUsernameRect.Sub(s.config.SamplePosition.ReferencePoint)
+	baseCenterUsernameRect := s.config.SamplePosition.CenterUsernameRect.Sub(s.config.SamplePosition.ReferencePoint)
+	baseUpUsernameRect := s.config.SamplePosition.UpUsernameRect.Sub(s.config.SamplePosition.ReferencePoint)
+
 	var usernameRects []image.Rectangle
 	for _, referencePoint := range referencePoints {
-		topCenterUsernameRect := s.config.BaseTopCenterUsernameRect.Add(referencePoint)
+		topCenterUsernameRect := baseTopCenterUsernameRect.Add(referencePoint)
 		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, s.config.ScreenshotUserExtractorUniformThresold) {
-			usernameRects = append(usernameRects, s.config.BaseCenterUsernameRect.Add(referencePoint))
+			usernameRects = append(usernameRects, baseCenterUsernameRect.Add(referencePoint))
 		} else {
-			usernameRects = append(usernameRects, s.config.BaseUpUsernameRect.Add(referencePoint))
+			usernameRects = append(usernameRects, baseUpUsernameRect.Add(referencePoint))
 		}
 	}
 

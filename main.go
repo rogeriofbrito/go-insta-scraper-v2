@@ -15,18 +15,21 @@ func main() {
 	// TODO: add function to create config.Config from env vars
 	config := &config.Config{
 		WorkingDirPath:                         "/tmp/go-insta-scraper",
-		ReferencePointsSearchRect:              image.Rect(630, 280, 650, 1800),
-		ReferencePointsXCoordinate:             635,
+		ReferencePointsSearchRect:              image.Rect(600, 308, 675, 1690),
+		ReferencePointsXCoordinate:             629,
 		GroupAveragesThreshold:                 10,
 		MatchTemplateThreshold:                 float32(0.8),
 		MatchTemplateMethod:                    gocv.TmCcoeffNormed,
 		ScreenshotUserExtractorImageFlags:      gocv.IMReadColor,
 		ScreenshotUserExtractorUniformThresold: 5,
-		BaseCenterUsernameRect:                 image.Rect(-465, 15, -135, 56),
-		BaseTopCenterUsernameRect:              image.Rect(-465, 5, -135, 18),
-		BaseUpUsernameRect:                     image.Rect(-465, -3, -135, 34),
-		TesseractOcrOem:                        1,
-		TesseractOcrPsm:                        7,
+		SamplePosition: config.SamplePosition{
+			ReferencePoint:        image.Pt(629, 501),
+			TopCenterUsernameRect: image.Rect(165, 482, 165+440, 482+36),
+			CenterUsernameRect:    image.Rect(165, 518, 165+440, 518+36),
+			UpUsernameRect:        image.Rect(165, 498, 165+440, 498+36),
+		},
+		TesseractOcrOem: 1,
+		TesseractOcrPsm: 7,
 		TesseractOcrConfigs: map[string]string{
 			"tessedit_char_whitelist":   "abcdefghijklmnopqrstuvwxyz0123456789._",
 			"classify_bln_numeric_mode": "1",
