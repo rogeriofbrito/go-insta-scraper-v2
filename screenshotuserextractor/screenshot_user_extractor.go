@@ -45,32 +45,37 @@ type ScreenshotUserExtractor struct {
 }
 
 func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
-	screenshotMat, err := s.readImage(s.screenshotPath, s.config.ScreenshotUserExtractorImageFlags)
+	mtScreenshotMat, err := s.readImage(s.screenshotPath, s.config.MatchTemplateImageFlags)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to read screenshot image")
 	}
 
-	templateFollowMat, err := s.readImage(s.templateFollowPath, s.config.ScreenshotUserExtractorImageFlags)
+	mtTemplateFollowMat, err := s.readImage(s.templateFollowPath, s.config.MatchTemplateImageFlags)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to read follow template image")
 	}
 
-	templateFollowingMat, err := s.readImage(s.templateFollowingPath, s.config.ScreenshotUserExtractorImageFlags)
+	mtTemplateFollowingMat, err := s.readImage(s.templateFollowingPath, s.config.MatchTemplateImageFlags)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to read following template image")
 	}
 
-	templateMessageMat, err := s.readImage(s.templateMessagePath, s.config.ScreenshotUserExtractorImageFlags)
+	mtTemplateMessageMat, err := s.readImage(s.templateMessagePath, s.config.MatchTemplateImageFlags)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to read message template image")
 	}
 
-	defer screenshotMat.Close()
-	defer templateFollowMat.Close()
-	defer templateFollowingMat.Close()
-	defer templateMessageMat.Close()
+	ocrScreenshotMat, err := s.readImage(s.screenshotPath, s.config.OcrImageFlags)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "failed to read screenshot image")
+	}
 
-	matches, err := s.getMatches(screenshotMat, templateFollowMat, templateFollowingMat, templateMessageMat)
+	defer mtScreenshotMat.Close()
+	defer mtTemplateFollowMat.Close()
+	defer mtTemplateFollowingMat.Close()
+	defer mtTemplateMessageMat.Close()
+
+	matches, err := s.getMatches(mtScreenshotMat, mtTemplateFollowMat, mtTemplateFollowingMat, mtTemplateMessageMat)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to get matches")
 	}
@@ -81,9 +86,9 @@ func (s *ScreenshotUserExtractor) GetUsernames() ([]string, error) {
 	yCoordinatesGroup := util.GroupAverages(yCoordinates, s.config.GroupAveragesThreshold)
 	yCoordinatesGroupInt := util.ConvertSliceFloat64ToInt(yCoordinatesGroup)
 	referencePoints := util.GetReferencePoints(s.config.ReferencePointsXCoordinate, yCoordinatesGroupInt)
-	usernameRects := s.getUsernameRects(screenshotMat, referencePoints)
+	usernameRects := s.getUsernameRects(mtScreenshotMat, referencePoints)
 
-	usernameImagePaths, err := s.writeUsernameImages(screenshotMat, usernameRects)
+	usernameImagePaths, err := s.writeUsernameImages(ocrScreenshotMat, usernameRects)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to write username images")
 	}
@@ -143,7 +148,7 @@ func (s *ScreenshotUserExtractor) getUsernameRects(screenshotMat gocv.Mat, refer
 	var usernameRects []image.Rectangle
 	for _, referencePoint := range referencePoints {
 		topCenterUsernameRect := baseTopCenterUsernameRect.Add(referencePoint)
-		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, s.config.ScreenshotUserExtractorUniformThresold) {
+		if util.IsUniformRegion(screenshotMat, topCenterUsernameRect, s.config.UniformThresold) {
 			usernameRects = append(usernameRects, baseCenterUsernameRect.Add(referencePoint))
 		} else {
 			usernameRects = append(usernameRects, baseUpUsernameRect.Add(referencePoint))

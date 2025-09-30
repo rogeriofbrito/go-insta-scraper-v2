@@ -14,14 +14,15 @@ import (
 func main() {
 	// TODO: add function to create config.Config from env vars
 	config := &config.Config{
-		WorkingDirPath:                         "/tmp/go-insta-scraper",
-		ReferencePointsSearchRect:              image.Rect(600, 308, 675, 1690),
-		ReferencePointsXCoordinate:             629,
-		GroupAveragesThreshold:                 10,
-		MatchTemplateThreshold:                 float32(0.8),
-		MatchTemplateMethod:                    gocv.TmCcoeffNormed,
-		ScreenshotUserExtractorImageFlags:      gocv.IMReadColor,
-		ScreenshotUserExtractorUniformThresold: 5,
+		WorkingDirPath:             "/tmp/go-insta-scraper",
+		ReferencePointsSearchRect:  image.Rect(600, 308, 675, 1690),
+		ReferencePointsXCoordinate: 629,
+		GroupAveragesThreshold:     10,
+		MatchTemplateThreshold:     float32(0.8),
+		MatchTemplateMethod:        gocv.TmCcoeffNormed,
+		MatchTemplateImageFlags:    gocv.IMReadColor,
+		OcrImageFlags:              gocv.IMReadGrayScale,
+		UniformThresold:            5,
 		SamplePosition: config.SamplePosition{
 			ReferencePoint:        image.Pt(629, 501),
 			TopCenterUsernameRect: image.Rect(165, 482, 165+440, 482+36),
